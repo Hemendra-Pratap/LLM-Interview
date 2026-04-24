@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===== VARIABLES & BASE ===== */
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            --surface: #ffffff;
+            --bg-body: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-glow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-y: scroll;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 3rem 1.5rem; }
+
+        /* ===== HEADER ===== */
+        .app-header { text-align: center; margin-bottom: 2.5rem; }
+        .app-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+        .app-header h1 span { color: var(--primary); }
+        .app-header p { color: var(--text-muted); font-size: 1rem; margin-top: 0.25rem; }
+
+        /* ===== LAYOUT & SECTIONS ===== */
+        .view-section { display: none; opacity: 0; transform: translateY(10px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .view-section.active { display: block; opacity: 1; transform: translateY(0); }
+        
+        .section-header { text-align: center; margin-bottom: 2rem; }
+        .section-header h2 { font-size: 1.5rem; font-weight: 600; }
+        .section-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .card-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border); background: #fdfdfd; }
+        .card-header h3 { font-size: 1.15rem; font-weight: 600; }
+        .card-header p { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+        .card-body { padding: 2rem; }
+        .card-footer {
+            padding: 1.25rem 2rem;
+            border-top: 1px solid var(--border);
+            background: #fdfdfd;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .feedback {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        
+        /* ===== FORMS & INPUTS ===== */
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.95rem; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: var(--shadow-glow); }
+        textarea { resize: vertical; min-height: 120px; }
+        .hint { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.4rem; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.75rem 1.5rem; font-size: 0.95rem; font-weight: 500;
+            border-radius: var(--radius-md); border: none; cursor: pointer;
+            transition: var(--transition); font-family: inherit;
+        }
+        .btn:disabled { opacity: 0.65; cursor: not-allowed; pointer-events: none; }
+        .btn:active:not(:disabled) { transform: scale(0.98); }
+        
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        
+        .btn-secondary { background: white; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { background: var(--bg-body); border-color: #cbd5e1; }
+
+        .btn-retry { padding: 0.4rem 0.8rem; font-size: 0.8rem; background: rgba(0,0,0,0.05); color: inherit; margin-left: auto; }
+        .btn-retry:hover { background: rgba(0,0,0,0.1); }
+
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%; border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== ALERTS & EMPTY STATES ===== */
+        .alert {
+            padding: 1rem 1.25rem; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500;
+            display: none; align-items: center; gap: 0.75rem; margin-top: 1.5rem;
+        }
+        .alert.active { display: flex; animation: fadeIn 0.3s ease; }
+        .alert-error { background: var(--danger-bg); color: #991b1b; border: 1px solid #fecaca; }
+        
+        .toast {
+            position: fixed; bottom: 2rem; right: 2rem; background: var(--success); color: white;
+            padding: 0.75rem 1.5rem; border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+            font-weight: 500; font-size: 0.9rem; z-index: 1000;
+            transform: translateY(100px); opacity: 0; transition: var(--transition);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        .empty-state {
+            text-align: center; padding: 4rem 2rem; border: 2px dashed var(--border);
+            border-radius: var(--radius-lg); background: rgba(248, 250, 252, 0.5);
+            color: var(--text-muted); display: none;
+        }
+        .empty-state.active { display: block; }
+        .empty-state h4 { color: var(--text-main); margin-bottom: 0.5rem; font-size: 1.1rem; }
+
+        /* ===== DYNAMIC CONTENT (QUESTIONS/RESULTS) ===== */
+        .questions-list { display: flex; flex-direction: column; gap: 1.5rem; }
+        .question-item {
+            background: var(--surface); padding: 1.5rem; border-radius: var(--radius-lg);
+            border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+        }
+        .question-text { font-weight: 600; font-size: 1.05rem; margin-bottom: 1rem; display: flex; gap: 0.75rem; }
+        .q-number { color: var(--primary); background: var(--primary-light); padding: 0.1rem 0.6rem; border-radius: 6px; font-size: 0.9rem; height: max-content; }
+
+        .results-list { display: flex; flex-direction: column; gap: 1.5rem; }
+        .result-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 1.5rem; box-shadow: var(--shadow-sm);
+        }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .result-title { font-weight: 600; font-size: 1.1rem; }
+        
+        .badge { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge.strong { background: var(--success-bg); color: var(--success); }
+        .badge.average { background: var(--warning-bg); color: var(--warning); }
+        .badge.weak { background: var(--danger-bg); color: var(--danger); }
+
+        .interpretation { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+        .progress-track { width: 100%; height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; margin-bottom: 0.5rem; }
+        .progress-bar { height: 100%; width: 0%; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 999px; }
+        .progress-bar.strong { background: var(--success); }
+        .progress-bar.average { background: var(--warning); }
+        .progress-bar.weak { background: var(--danger); }
+        
+        .score-row { display: flex; justify-content: flex-end; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="app-header">
+            <h1>Interview<span>Pro</span></h1>
+            <p>AI-Powered Technical Assessment</p>
+        </header>
+
+        <main id="app-root">
+            <section id="view-setup" class="view-section active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Configure Interview</h3>
+                        <p>Set up the target parameters for the candidate.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="input-role">Target Role</label>
+                            <input type="text" id="input-role" placeholder="e.g., Senior Frontend Developer" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="input-skills">Required Skills</label>
+                            <input type="text" id="input-skills" placeholder="e.g., React, TypeScript, System Design" autocomplete="off">
+                            <small class="hint">Separate skills with commas</small>
+                        </div>
+                        <div id="alert-setup" class="alert alert-error"></div>
+                    </div>
+                    <div class="card-footer">
+                        <button id="btn-generate" class="btn btn-primary">
+                            <span class="btn-text">Generate Questions</span>
+                            <div class="spinner hidden"></div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-questions" class="view-section">
+                <div class="section-header">
+                    <h2>Technical Assessment</h2>
+                    <p>Provide detailed answers to the generated questions.</p>
+                </div>
+
+                <div id="empty-questions" class="empty-state">
+                    <h4>No questions generated yet</h4>
+                    <p>Go back and configure the interview to get started.</p>
+                </div>
+
+                <div id="questions-container" class="questions-list"></div>
+                <div id="alert-questions" class="alert alert-error"></div>
+
+                <div id="actions-questions" class="card-footer" style="background: transparent; border: none; padding: 1.5rem 0; justify-content: space-between;">
+                    <button id="btn-back-setup" class="btn btn-secondary">Edit Configuration</button>
+                    <button id="btn-evaluate" class="btn btn-primary">
+                        <span class="btn-text">Evaluate Answers</span>
+                        <div class="spinner hidden"></div>
+                    </button>
+                </div>
+            </section>
+
+            <section id="view-results" class="view-section">
+                <div class="section-header">
+                    <h2>Evaluation Results</h2>
+                    <p>Detailed performance breakdown across all questions.</p>
+                </div>
+
+                <div id="empty-results" class="empty-state">
+                    <h4>No results available</h4>
+                    <p>Complete the assessment to view your score.</p>
+                </div>
+
+                <div id="results-container" class="results-list"></div>
+
+                <div id="actions-results" class="card-footer" style="background: transparent; border: none; padding: 1.5rem 0; justify-content: center; gap: 1rem;">
+                    <button id="btn-back-questions" class="btn btn-secondary">Review Answers</button>
+                    <button id="btn-reset" class="btn btn-primary">Start New Assessment</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast-success" class="toast">Action successful</div>
+
+    <script>
+        // ==========================================
+        // ===== CONFIGURATION & GLOBALS =====
+        // ==========================================
+        
+        // Dynamically resolve API URL. Fallback to localhost:8000 if running locally without backend proxy.
+        const resolveApiUrl = () => {
+            const origin = window.location.origin;
+            if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin === 'file://') {
+                return window.location.port !== '8000' ? 'http://localhost:8000' : origin;
+            }
+            return origin;
+        };
+        const API_BASE_URL = resolveApiUrl();
+        const STATE_KEY = 'ai_interview_state';
+
+        // ==========================================
+        // ===== STATE MANAGEMENT =====
+        // ==========================================
+        
+        let state = {
+            view: 'setup', // 'setup' | 'questions' | 'results'
+            role: '',
+            skills: [],
+            questions: [],
+            idealAnswers: [],
+            candidateAnswers: [],
+            results: []
+        };
+
+        const saveState = () => {
+            localStorage.setItem(STATE_KEY, JSON.stringify(state));
+        };
+
+        const loadState = () => {
+            const saved = localStorage.getItem(STATE_KEY);
+            if (saved) {
+                try {
+                    state = { ...state, ...JSON.parse(saved) };
+                } catch (e) {
+                    console.error("Failed to parse state", e);
+                }
+            }
+        };
+
+        const clearState = () => {
+            localStorage.removeItem(STATE_KEY);
+            state = { view: 'setup', role: '', skills: [], questions: [], idealAnswers: [], candidateAnswers: [], results: [] };
+        };
+
+        // ==========================================
+        // ===== DOM ELEMENTS =====
+        // ==========================================
+        
+        const DOM = {
+            views: {
+                setup: document.getElementById('view-setup'),
+                questions: document.getElementById('view-questions'),
+                results: document.getElementById('view-results')
+            },
+            inputs: {
+                role: document.getElementById('input-role'),
+                skills: document.getElementById('input-skills')
+            },
+            containers: {
+                questions: document.getElementById('questions-container'),
+                results: document.getElementById('results-container'),
+                emptyQuestions: document.getElementById('empty-questions'),
+                emptyResults: document.getElementById('empty-results'),
+                actionQuestions: document.getElementById('actions-questions'),
+                actionResults: document.getElementById('actions-results')
+            },
+            buttons: {
+                generate: document.getElementById('btn-generate'),
+                evaluate: document.getElementById('btn-evaluate'),
+                backSetup: document.getElementById('btn-back-setup'),
+                backQuestions: document.getElementById('btn-back-questions'),
+                reset: document.getElementById('btn-reset')
+            },
+            alerts: {
+                setup: document.getElementById('alert-setup'),
+                questions: document.getElementById('alert-questions')
+            },
+            toast: document.getElementById('toast-success')
+        };
+
+        // ==========================================
+        // ===== UTILS & UX HELPERS =====
+        // ==========================================
+
+        const switchView = (targetView) => {
+            Object.values(DOM.views).forEach(v => v.classList.remove('active'));
+            DOM.views[targetView].classList.add('active');
+            state.view = targetView;
+            saveState();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const setButtonLoading = (btnNode, isLoading, originalText) => {
+            const textNode = btnNode.querySelector('.btn-text');
+            const spinner = btnNode.querySelector('.spinner');
+            btnNode.disabled = isLoading;
+            
+            if (isLoading) {
+                textNode.textContent = 'Processing...';
+                spinner.classList.remove('hidden');
+            } else {
+                textNode.textContent = originalText;
+                spinner.classList.add('hidden');
+            }
+        };
+
+        const showError = (alertNode, message, retryCallback = null) => {
+            alertNode.innerHTML = `<span>⚠️ ${message}</span>`;
+            if (retryCallback) {
+                const retryBtn = document.createElement('button');
+                retryBtn.className = 'btn btn-retry';
+                retryBtn.textContent = 'Retry';
+                retryBtn.onclick = retryCallback;
+                alertNode.appendChild(retryBtn);
+            }
+            alertNode.classList.add('active');
+        };
+
+        const hideError = (alertNode) => {
+            alertNode.classList.remove('active');
+            alertNode.innerHTML = '';
+        };
+
+        const showToast = (message) => {
+            DOM.toast.textContent = message;
+            DOM.toast.classList.add('show');
+            setTimeout(() => DOM.toast.classList.remove('show'), 3000);
+        };
+
+        // Mapping category to intelligent frontend interpretation
+        const getInterpretation = (category) => {
+            const cat = category.toLowerCase();
+            if (cat.includes('strong')) return "Excellent understanding of the core concepts. Response was clear and comprehensive.";
+            if (cat.includes('average')) return "Partial understanding. Covered the basics but lacked deeper technical details.";
+            if (cat.includes('weak')) return "Needs significant improvement. The response was incorrect or entirely missed the point.";
+            return "Response evaluated.";
+        };
+
+        const getCategoryClass = (category) => {
+            const cat = category.toLowerCase();
+            if (cat.includes('strong')) return "strong";
+            if (cat.includes('average')) return "average";
+            return "weak";
+        };
+
+        // ==========================================
+        // ===== RENDERING LOGIC =====
+        // ==========================================
+
+        const renderSetup = () => {
+            DOM.inputs.role.value = state.role || '';
+            DOM.inputs.skills.value = state.skills.join(', ') || '';
+            if(state.view === 'setup') DOM.inputs.role.focus();
+        };
+
+        const renderQuestions = () => {
+            DOM.containers.questions.innerHTML = '';
+            
+            if (!state.questions || state.questions.length === 0) {
+                DOM.containers.emptyQuestions.classList.add('active');
+                DOM.containers.actionQuestions.classList.add('hidden');
+                return;
+            }
+
+            DOM.containers.emptyQuestions.classList.remove('active');
+            DOM.containers.actionQuestions.classList.remove('hidden');
+
+            state.questions.forEach((qText, index) => {
+                const item = document.createElement('div');
+                item.className = 'question-item';
+                item.innerHTML = `
+                    <div class="question-text">
+                        <span class="q-number">Q${index + 1}</span>
+                        <span>${qText}</span>
+                    </div>
+                    <textarea id="answer-${index}" placeholder="Type your detailed answer here...">${state.candidateAnswers[index] || ''}</textarea>
+                `;
+                DOM.containers.questions.appendChild(item);
+            });
+        };
+
+        const renderResults = () => {
+            DOM.containers.results.innerHTML = '';
+            
+            if (!state.results || state.results.length === 0) {
+                DOM.containers.emptyResults.classList.add('active');
+                DOM.containers.actionResults.classList.add('hidden');
+                return;
+            }
+
+            DOM.containers.emptyResults.classList.remove('active');
+            DOM.containers.actionResults.classList.remove('hidden');
+
+            state.results.forEach((res, index) => {
+                const catClass = getCategoryClass(res.category);
+                const interpretation = getInterpretation(res.category);
+                const percentage = Math.max(0, Math.min(100, res.percentage)); // Clamp 0-100
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <div class="result-header">
+                        <span class="result-title">Question ${index + 1}</span>
+                        <span class="badge ${catClass}">${res.category}</span>
+                    </div>
+                    <p class="interpretation">${interpretation}</p>
+                    <p class="feedback">${res.feedback}</p>
+                    <div class="progress-track">
+                        <div class="progress-bar ${catClass}" style="width: 0%" data-target="${percentage}%"></div>
+                    </div>
+                    <div class="score-row">
+                        Score: ${res.score} / 10 (${percentage}%)
+                    </div>
+                `;
+                DOM.containers.results.appendChild(card);
+            });
+
+            // Smooth progress bar animation
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    bar.style.width = bar.getAttribute('data-target');
+                });
+            }, 100);
+        };
+
+        const hydrateUI = () => {
+            renderSetup();
+            renderQuestions();
+            renderResults();
+            switchView(state.view);
+        };
+
+        // ==========================================
+        // ===== API ACTIONS =====
+        // ==========================================
+
+        const actionGenerateQuestions = async () => {
+            hideError(DOM.alerts.setup);
+            
+            const role = DOM.inputs.role.value.trim();
+            // Robust input handling
+            const skills = DOM.inputs.skills.value.split(',').map(s => s.trim()).filter(Boolean);
+
+            if (!role || skills.length === 0) {
+                showError(DOM.alerts.setup, "Please provide both a Target Role and at least one Skill.");
+                return;
+            }
+
+            // Sync state
+            state.role = role;
+            state.skills = skills;
+            saveState();
+
+            setButtonLoading(DOM.buttons.generate, true, "Generate Questions");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/generate-questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role, skills })
+                });
+
+                if (!response.ok) throw new Error("Server error. Could not generate questions.");
+
+                const data = await response.json();
+                
+                if (!data.questions || !data.ideal_answers) {
+                    throw new Error("Invalid data format received from server.");
+                }
+
+                state.questions = data.questions;
+                state.idealAnswers = data.ideal_answers;
+                state.candidateAnswers = new Array(data.questions.length).fill('');
+                state.results = []; // Clear old results
+                
+                showToast("Questions generated successfully!");
+                renderQuestions();
+                switchView('questions');
+
+            } catch (error) {
+                showError(DOM.alerts.setup, error.message || "Failed to connect to backend.", actionGenerateQuestions);
+            } finally {
+                setButtonLoading(DOM.buttons.generate, false, "Generate Questions");
+            }
+        };
+
+        const actionEvaluateAnswers = async () => {
+            hideError(DOM.alerts.questions);
+
+            const candidateAnswers = [];
+            let isMissingAnswers = false;
+
+            // Collect inputs and update state
+            for (let i = 0; i < state.questions.length; i++) {
+                const val = document.getElementById(`answer-${i}`).value.trim();
+                if (!val) isMissingAnswers = true;
+                candidateAnswers.push(val);
+            }
+
+            state.candidateAnswers = candidateAnswers;
+            saveState();
+
+            if (isMissingAnswers) {
+                showError(DOM.alerts.questions, "Please provide answers for all questions before evaluating.");
+                return;
+            }
+
+            setButtonLoading(DOM.buttons.evaluate, true, "Evaluate Answers");
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/evaluate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ideal_answers: state.idealAnswers,
+                        candidate_answers: state.candidateAnswers
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server error. Could not evaluate answers.");
+
+                const data = await response.json();
+                state.results = data;
+                
+                showToast("Evaluation complete!");
+                renderResults();
+                switchView('results');
+
+            } catch (error) {
+                showError(DOM.alerts.questions, error.message || "Failed to connect to backend.", actionEvaluateAnswers);
+            } finally {
+                setButtonLoading(DOM.buttons.evaluate, false, "Evaluate Answers");
+            }
+        };
+
+        // ==========================================
+        // ===== EVENT LISTENERS & INIT =====
+        // ==========================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load state from local storage on startup
+            loadState();
+            hydrateUI();
+
+            // Setup Listeners
+            DOM.buttons.generate.addEventListener('click', actionGenerateQuestions);
+            
+            DOM.buttons.evaluate.addEventListener('click', actionEvaluateAnswers);
+            
+            DOM.buttons.backSetup.addEventListener('click', () => {
+                // Collect partial answers before leaving view
+                if(state.questions.length > 0) {
+                    state.candidateAnswers = state.questions.map((_, i) => document.getElementById(`answer-${i}`).value);
+                    saveState();
+                }
+                switchView('setup');
+            });
+            
+            DOM.buttons.backQuestions.addEventListener('click', () => {
+                switchView('questions');
+            });
+
+            DOM.buttons.reset.addEventListener('click', () => {
+                if(confirm('Are you sure you want to start a new assessment? Current progress will be lost.')) {
+                    clearState();
+                    hydrateUI();
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
