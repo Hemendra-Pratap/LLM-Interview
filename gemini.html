@@ -984,7 +984,7 @@
         const resolveApiUrl = () => {
             const origin = window.location.origin;
             if (origin.includes('localhost') || origin.includes('127.0.0.1') || origin === 'file://') {
-                return window.location.port !== '8000' ? 'http://localhost:8000' : origin;
+                return window.location.port !== '8000' ? 'https://llm-interview-h7gt.onrender.com' : origin;
             }
             return origin;
         };
