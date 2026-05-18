@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
-from ml_module import evaluate_all_answers
-
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
@@ -208,35 +206,72 @@ def generate_questions(request: QuestionRequest):
         }
 
 
-# =========================
-# 🔷 API: EVALUATE (OPTIMIZED)
-# =========================
 @app.post("/evaluate")
 def evaluate(request: EvaluationRequest):
 
     if len(request.ideal_answers) != len(request.candidate_answers):
         return {"error": "Length mismatch"}
 
-    # 🔷 ML scoring
-    base_results = evaluate_all_answers(
-        request.ideal_answers,
-        request.candidate_answers
-    )
+    questions = [
+        f"Question {i+1}"
+        for i in range(len(request.ideal_answers))
+    ]
 
-    # 🔥 SINGLE LLM CALL (optimized)
-    questions = [f"Question {i+1}" for i in range(len(base_results))]
-
+    # 🔷 Batch feedback
     feedbacks = generate_feedback_batch(
         questions,
         request.ideal_answers,
         request.candidate_answers
     )
 
-    final_results = []
+    results = []
 
-    for i in range(len(base_results)):
-        result = base_results[i]
-        result["feedback"] = feedbacks[i]
-        final_results.append(result)
+    for i in range(len(request.ideal_answers)):
 
-    return final_results
+        candidate = request.candidate_answers[i]
+        ideal = request.ideal_answers[i]
+
+        score_prompt = f"""
+You are an expert technical interviewer.
+
+Evaluate the candidate answer compared to the ideal answer.
+
+Ideal Answer:
+{ideal}
+
+Candidate Answer:
+{candidate}
+
+Rules:
+- Score from 0 to 100
+- Consider:
+  correctness
+  completeness
+  technical depth
+  clarity
+- Return ONLY a single integer
+- Example output: 85
+"""
+
+        score = safe_generate(score_prompt)
+
+        try:
+            score = int(score.strip())
+        except:
+            score = 50
+
+        # 🔷 Category logic
+        if score >= 75:
+            category = "Strong"
+        elif score >= 45:
+            category = "Average"
+        else:
+            category = "Weak"
+
+        results.append({
+            "score": score,
+            "category": category,
+            "feedback": feedbacks[i]
+        })
+
+    return results
