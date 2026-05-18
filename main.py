@@ -8,11 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-@app.get("/")
-def home():
-    return {
-        "message": "AI Interview Evaluation API is running"
-    }
+
 
 # =========================
 # 🔷 CONFIG
@@ -24,6 +20,11 @@ model = genai.GenerativeModel("gemini-flash-latest")
 
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return {
+        "message": "AI Interview Evaluation API is running"
+    }
 # =========================
 # 🔷 CORS
 # =========================
