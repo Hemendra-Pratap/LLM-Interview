@@ -1,30 +1,38 @@
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+import json
+import re
 
 load_dotenv()
-
-
 
 # =========================
 # 🔷 CONFIG
 # =========================
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# ✅ FIXED MODEL (important)
+# Stable lightweight model
 model = genai.GenerativeModel("gemini-flash-latest")
 
 app = FastAPI()
 
+# =========================
+# 🔷 SERVE FRONTEND
+# =========================
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+
+
 @app.get("/")
-def home():
-    return {
-        "message": "AI Interview Evaluation API is running"
-    }
+def serve_frontend():
+    return FileResponse("frontend/index.html")
+
+
 # =========================
 # 🔷 CORS
 # =========================
@@ -37,167 +45,108 @@ app.add_middleware(
 )
 
 # =========================
-# 🔷 SAFE LLM CALL
+# 🔷 SAFE GEMINI CALL
 # =========================
 def safe_generate(prompt):
+
     try:
+
         response = model.generate_content(prompt)
+
+        print("\n================ TOKEN USAGE ================\n")
+
+        try:
+            print(response.usage_metadata)
+        except:
+            print("Token metadata unavailable")
+
+        print("\n=============================================\n")
+
         return response.text.strip()
+
     except Exception as e:
+
         print("LLM ERROR:", e)
         return None
 
 
 # =========================
-# 🔷 LLM: QUESTIONS
+# 🔷 REQUEST MODELS
 # =========================
-def generate_questions_llm(role, skills, question_count=5, difficulty='medium'):
-    question_count = max(1, min(question_count, 10))
-    difficulty_text = difficulty.capitalize()
+class QuestionRequest(BaseModel):
+    role: str
+    skills: List[str]
+    question_count: int = 3
+    difficulty: str = "easy"
+
+
+class EvaluationRequest(BaseModel):
+    questions: List[str]
+    ideal_answers: List[str]
+    candidate_answers: List[str]
+
+
+# =========================
+# 🔷 GENERATE QUESTIONS
+# 🔥 ONLY 1 API CALL
+# =========================
+@app.post("/generate-questions")
+def generate_questions(request: QuestionRequest):
 
     prompt = f"""
-Generate exactly {question_count} technical interview questions for a {role} with skills in {', '.join(skills)}.
+Generate exactly {request.question_count} SHORT technical interview questions and concise ideal answers.
 
-Question level: {difficulty_text}
+Role:
+{request.role}
+
+Skills:
+{', '.join(request.skills)}
+
+Difficulty:
+{request.difficulty}
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+  {{
+    "question": "question here",
+    "ideal_answer": "ideal answer here"
+  }}
+]
 
 Rules:
-- Clear and concise
+- Beginner to intermediate level
+- Questions must be short
+- Ideal answers must be ONE concise sentence
+- Keep ideal answers under 25 words
+- No markdown
 - No explanations
-- Numbered list
-"""
-
-    raw_text = safe_generate(prompt)
-    if not raw_text:
-        return []
-
-    questions = []
-    for line in raw_text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-
-        if "." in line:
-            parts = line.split(".", 1)
-            if parts[0].isdigit():
-                line = parts[1].strip()
-
-        questions.append(line)
-
-    return questions[:question_count]
-
-
-# =========================
-# 🔷 LLM: IDEAL ANSWERS
-# =========================
-def generate_ideal_answers_llm(questions):
-    prompt = "Generate ideal answers:\n"
-
-    for i, q in enumerate(questions):
-        prompt += f"\n{i+1}. {q}"
-
-    raw_text = safe_generate(prompt)
-
-    if not raw_text:
-        return ["Ideal answer unavailable."] * len(questions)
-
-    answers = []
-    for line in raw_text.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-
-        if "." in line:
-            parts = line.split(".", 1)
-            if parts[0].isdigit():
-                line = parts[1].strip()
-
-        answers.append(line)
-
-    # ✅ fix mismatch
-    while len(answers) < len(questions):
-        answers.append("Ideal answer unavailable.")
-
-    return answers[:len(questions)]
-
-
-# =========================
-# 🔥 NEW: BATCH FEEDBACK (OPTIMIZED)
-# =========================
-def generate_feedback_batch(questions, ideal_answers, candidate_answers):
-    prompt = "You are an expert technical interviewer.\n\n"
-
-    for i in range(len(questions)):
-        prompt += f"""
-{i+1}. Question: {questions[i]}
-Ideal Answer: {ideal_answers[i]}
-Candidate Answer: {candidate_answers[i]}
-"""
-
-    prompt += """
-Instructions:
-- Give feedback for each answer
-- Mention what is correct, missing, and how to improve
-- Keep 2-3 lines per answer
-- No scores
-- Return numbered list only
 """
 
     raw = safe_generate(prompt)
 
     if not raw:
-        return ["Feedback unavailable."] * len(questions)
+        return {
+            "error": "LLM generation failed"
+        }
 
-    feedbacks = []
-
-    for line in raw.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-
-        if "." in line:
-            parts = line.split(".", 1)
-            if parts[0].isdigit():
-                feedbacks.append(parts[1].strip())
-
-    # ✅ fix mismatch
-    while len(feedbacks) < len(questions):
-        feedbacks.append("Feedback unavailable.")
-
-    return feedbacks[:len(questions)]
-
-
-# =========================
-# 🔷 MODELS
-# =========================
-class EvaluationRequest(BaseModel):
-    ideal_answers: List[str]
-    candidate_answers: List[str]
-
-
-class QuestionRequest(BaseModel):
-    role: str
-    skills: List[str]
-    question_count: int = 5
-    difficulty: str = 'medium'
-
-
-# =========================
-# 🔷 API: GENERATE
-# =========================
-@app.post("/generate-questions")
-def generate_questions(request: QuestionRequest):
     try:
-        questions = generate_questions_llm(
-            request.role,
-            request.skills,
-            question_count=request.question_count,
-            difficulty=request.difficulty
-        )
 
-        if not questions:
-            raise ValueError("LLM failed")
+        # remove markdown wrappers
+        raw = re.sub(r"```json", "", raw)
+        raw = re.sub(r"```", "", raw)
 
-        ideal_answers = generate_ideal_answers_llm(questions)
+        data = json.loads(raw)
+
+        questions = []
+        ideal_answers = []
+
+        for item in data:
+
+            questions.append(item["question"])
+            ideal_answers.append(item["ideal_answer"])
 
         return {
             "questions": questions,
@@ -205,80 +154,96 @@ def generate_questions(request: QuestionRequest):
         }
 
     except Exception as e:
-        print("GENERATE ERROR:", e)
+
+        print("JSON PARSE ERROR:", e)
+        print(raw)
 
         return {
-            "questions": ["Fallback question"],
-            "ideal_answers": ["Fallback answer"]
+            "error": "Failed to parse Gemini response"
         }
 
 
+# =========================
+# 🔷 EVALUATE ANSWERS
+# 🔥 ONLY 1 API CALL
+# =========================
 @app.post("/evaluate")
 def evaluate(request: EvaluationRequest):
 
-    if len(request.ideal_answers) != len(request.candidate_answers):
-        return {"error": "Length mismatch"}
+    if len(request.questions) != len(request.candidate_answers):
 
-    questions = [
-        f"Question {i+1}"
-        for i in range(len(request.ideal_answers))
-    ]
+        return {
+            "error": "Length mismatch"
+        }
 
-    # 🔷 Batch feedback
-    feedbacks = generate_feedback_batch(
-        questions,
-        request.ideal_answers,
-        request.candidate_answers
-    )
+    qa_block = ""
 
-    results = []
+    for i in range(len(request.questions)):
 
-    for i in range(len(request.ideal_answers)):
+        qa_block += f"""
 
-        candidate = request.candidate_answers[i]
-        ideal = request.ideal_answers[i]
-
-        score_prompt = f"""
-You are an expert technical interviewer.
-
-Evaluate the candidate answer compared to the ideal answer.
+Question {i+1}:
+{request.questions[i]}
 
 Ideal Answer:
-{ideal}
+{request.ideal_answers[i]}
 
 Candidate Answer:
-{candidate}
-
-Rules:
-- Score from 0 to 100
-- Consider:
-  correctness
-  completeness
-  technical depth
-  clarity
-- Return ONLY a single integer
-- Example output: 85
+{request.candidate_answers[i]}
 """
 
-        score = safe_generate(score_prompt)
+    prompt = f"""
+Evaluate all candidate answers.
 
-        try:
-            score = int(score.strip())
-        except:
-            score = 50
+Return ONLY valid JSON.
 
-        # 🔷 Category logic
-        if score >= 75:
-            category = "Strong"
-        elif score >= 45:
-            category = "Average"
-        else:
-            category = "Weak"
+Format:
 
-        results.append({
-            "score": score,
-            "category": category,
-            "feedback": feedbacks[i]
-        })
+[
+  {{
+    "score": 85,
+    "category": "Strong",
+    "feedback": "Good answer but missing detail."
+  }}
+]
 
-    return results
+Rules:
+- Score from 0-100
+- Category must be:
+  Strong
+  Average
+  Weak
+- Feedback must be ONE short sentence
+- Keep feedback under 15 words
+- Avoid long explanations
+
+Questions and Answers:
+
+{qa_block}
+"""
+
+    raw = safe_generate(prompt)
+
+    if not raw:
+
+        return {
+            "error": "LLM evaluation failed"
+        }
+
+    try:
+
+        raw = re.sub(r"```json", "", raw)
+        raw = re.sub(r"```", "", raw)
+
+        data = json.loads(raw)
+
+        return data
+
+    except Exception as e:
+
+        print("EVALUATION PARSE ERROR:", e)
+        print(raw)
+
+        return {
+            "error": "Failed to parse evaluation response"
+        }
