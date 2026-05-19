@@ -319,7 +319,7 @@
 </div>
 
 <script>
-const API = 'https://llm-interview-h7gt.onrender.com';
+const API_BASE = "";
 
 let state = {
   role: '',
@@ -384,7 +384,7 @@ async function startInterview() {
     </div>`;
 
   try {
-    const res = await fetch(`${API}/generate-questions`, {
+    const res = await fetch(`${API_BASE}/generate-questions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -469,7 +469,7 @@ document.getElementById('submit-btn').textContent = 'evaluating answers with ai.
   document.getElementById('submit-btn').disabled = true;
 
   try {
-    const res = await fetch(`${API}/evaluate`, {
+    const res = await fetch(`${API_BASE}/evaluate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
